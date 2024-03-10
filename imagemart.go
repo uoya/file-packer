@@ -4,27 +4,28 @@ import "os"
 
 type ImageMart struct{}
 
-func (i ImageMart) Name() string {
-	return string(imageMart)
+func (i ImageMart) Name() ServiceName {
+	return "イメージマート"
 }
 
-func (i ImageMart) Check(baseName string) ([]string, error) {
+func (i ImageMart) Check(baseName FileBaseName) ([]FileName, error) {
 	ext := []Extension{eps, jpg}
-	var targets []string
+	var checked []FileName
 	for _, ext := range ext {
-		t := baseName + string(ext)
-		_, err := os.Stat(baseName + string(ext))
+		t := baseName.FullName(ext)
+		_, err := os.Stat(string(baseName.FullName(ext)))
 		if err != nil {
-			return []string{}, err
+			return []FileName{}, err
 		}
-		targets = append(targets, t)
+		checked = append(checked, t)
 	}
-	return targets, nil
+	return checked, nil
 }
 
-func (i ImageMart) Exec(targets []string, baseName string) error {
-	for _, t := range targets {
-		_, err := CopyFile(t, i.Name())
+func (i ImageMart) Exec(sources []FileName) error {
+	for _, src := range sources {
+		dstDir := DirectoryName(i.Name())
+		_, err := CopyFile(src, dstDir)
 		if err != nil {
 			return err
 		}

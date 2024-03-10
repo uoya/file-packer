@@ -4,10 +4,11 @@ import (
 	"archive/zip"
 	"io"
 	"os"
+	"path"
 )
 
-func ZipFiles(sourceNames []string, baseName string) error {
-	zipFile, err := os.Create(baseName + ".zip")
+func ZipFiles(sourceNames []FileName, dstDir DirectoryName) error {
+	zipFile, err := os.Create(path.Join(string(dstDir), string(sourceNames[0].Base())+".zip"))
 	if err != nil {
 		return err
 	}
@@ -24,8 +25,8 @@ func ZipFiles(sourceNames []string, baseName string) error {
 	return nil
 }
 
-func addFileToZip(filename string, zipWriter *zip.Writer) error {
-	fileToZip, err := os.Open(filename)
+func addFileToZip(filename FileName, zipWriter *zip.Writer) error {
+	fileToZip, err := os.Open(string(filename))
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,7 @@ func addFileToZip(filename string, zipWriter *zip.Writer) error {
 		return err
 	}
 
-	header.Name = filename
+	header.Name = string(filename)
 
 	header.Method = zip.Deflate
 

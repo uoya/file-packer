@@ -4,23 +4,24 @@ import "os"
 
 type ShutterStock struct{}
 
-func (s ShutterStock) Name() string {
-	return string(shutterStock)
+func (s ShutterStock) Name() ServiceName {
+	return "ShutterStock"
 }
 
-func (s ShutterStock) Check(baseName string) ([]string, error) {
+func (s ShutterStock) Check(baseName FileBaseName) ([]FileName, error) {
 	// *_ss.eps が存在するかチェック
-	targets := []string{baseName + "_ss.eps"}
-	_, err := os.Stat(targets[0])
+	checked := []FileName{baseName.Suffix("_ss").FullName(eps)}
+	_, err := os.Stat(string(checked[0]))
 	if err != nil {
-		return []string{}, err
+		return []FileName{}, err
 	}
-	return targets, nil
+	return checked, nil
 }
 
-func (s ShutterStock) Exec(targets []string, baseName string) error {
-	for _, t := range targets {
-		_, err := CopyFile(t, s.Name())
+func (s ShutterStock) Exec(sources []FileName) error {
+	for _, src := range sources {
+		dstDir := DirectoryName(s.Name())
+		_, err := CopyFile(src, dstDir)
 		if err != nil {
 			return err
 		}

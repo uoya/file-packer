@@ -2,31 +2,30 @@ package main
 
 import (
 	"os"
-	"path"
 )
 
 type AdobeStock struct{}
 
-func (a AdobeStock) Name() string {
-	return string(adobeStock)
+func (a AdobeStock) Name() ServiceName {
+	return "AdobeStock"
 }
-
-func (a AdobeStock) Check(baseName string) ([]string, error) {
+func (a AdobeStock) Check(baseName FileBaseName) ([]FileName, error) {
 	ext := []Extension{eps, jpg}
-	var targets []string
+	var checked []FileName
 	for _, ext := range ext {
-		t := baseName + string(ext)
-		_, err := os.Stat(t)
+		t := baseName.FullName(ext)
+		_, err := os.Stat(string(t))
 		if err != nil {
-			return []string{}, err
+			return []FileName{}, err
 		}
-		targets = append(targets, t)
+		checked = append(checked, t)
 	}
-	return targets, nil
+	return checked, nil
 }
 
-func (a AdobeStock) Exec(targets []string, baseName string) error {
-	if err := ZipFiles(targets, path.Join(a.Name(), baseName)); err != nil {
+func (a AdobeStock) Exec(sources []FileName) error {
+	dstDir := DirectoryName(a.Name())
+	if err := ZipFiles(sources, dstDir); err != nil {
 		return err
 	}
 	return nil
