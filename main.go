@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"io"
 	"log/slog"
 	"os"
@@ -54,6 +55,7 @@ func realMain() int {
 	}
 
 	files, err := os.ReadDir("./")
+
 	for _, file := range files {
 		filename := file.Name()
 		ext := filepath.Ext(file.Name())
@@ -74,7 +76,7 @@ func realMain() int {
 			for _, service := range services {
 				err = MkdirIfNotExists(service.Name())
 				if err != nil {
-					slog.Error("%s", err.Error())
+					slog.Error(err.Error())
 					return 1
 				}
 			}
@@ -87,24 +89,68 @@ func realMain() int {
 				}
 			}
 
-			// 実行済みファイルを移動
 		}
+		// TODO 実行済みファイルを移動
 	}
 
 	// 処理済みファイル格納フォルダ作成
+	// TODO 途中でコケた場合は作成しない
 	now := time.Now().Format("2006-01-02-15-04")
 	nowDir := path.Join(outputPath, now)
 	err = MkdirIfNotExists(nowDir)
 	if err != nil {
-		slog.Error("%s", err.Error())
+		slog.Error(err.Error())
 		return 1
 	}
 
 	return 0
 }
 
-func zip(files []string, output string) (int, error) {
-	return 0, nil
+func ZipFiles(sourceNames []string, baseName string) error {
+	zipFile, err := os.Create(baseName + ".zip")
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for _, file := range sourceNames {
+		if err := addFileToZip(file, zipWriter); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addFileToZip(filename string, zipWriter *zip.Writer) error {
+	fileToZip, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	header.Name = filename
+
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, fileToZip)
+	return err
 }
 
 func MkdirIfNotExists(dirPath string) error {
@@ -168,12 +214,16 @@ func (a AdobeStock) Check(baseName string) error {
 
 func (a AdobeStock) Exec(baseName string) error {
 	extensions := []Extension{eps, jpg}
+
+	var filenames []string
 	for _, ext := range extensions {
-		_, err := CopyFile(baseName+string(ext), a.Name())
-		if err != nil {
-			return err
-		}
+		filenames = append(filenames, baseName+string(ext))
 	}
+
+	if err := ZipFiles(filenames, path.Join(a.Name(), baseName)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -189,6 +239,7 @@ func (p Pixta) Check(baseName string) error {
 	if err != nil {
 		return err
 	}
+
 	// png 優先, 存在しなければ jpg にフォールバック
 	_, err = os.Stat(baseName + string(png))
 	if err != nil {
@@ -197,35 +248,28 @@ func (p Pixta) Check(baseName string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
 func (p Pixta) Exec(baseName string) error {
+	var filenames []string
 	// eps 必須
-	_, err := os.Stat(baseName + string(eps))
-	if err != nil {
-		return err
-	}
-	_, err = CopyFile(baseName+string(eps), p.Name())
-	if err != nil {
-		return err
-	}
+	filenames = append(filenames, baseName+string(eps))
+
 	// png 優先, 存在しなければ jpg にフォールバック
-	_, err = os.Stat(baseName + string(png))
+	pngFile := baseName + string(png)
+	_, err := os.Stat(pngFile)
 	if err == nil {
-		_, err = CopyFile(baseName+string(png), p.Name())
 		if err != nil {
 			return err
 		}
+		filenames = append(filenames, pngFile)
 	} else {
-		_, err := os.Stat(baseName + string(jpg))
-		if err != nil {
-			return err
-		}
-		_, err = CopyFile(baseName+string(jpg), p.Name())
-		if err != nil {
-			return err
-		}
+		filenames = append(filenames, baseName+string(jpg))
+	}
+	if err := ZipFiles(filenames, path.Join(p.Name(), baseName)); err != nil {
+		return err
 	}
 	return nil
 }
