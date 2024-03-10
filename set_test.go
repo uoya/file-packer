@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Add(t *testing.T) {
+func TestAdd(t *testing.T) {
 	set := NewSet()
 	set.Add("item1")
 	set.Add("item1")
@@ -23,7 +23,7 @@ func Test_Add(t *testing.T) {
 	}
 }
 
-func Test_Values(t *testing.T) {
+func TestValues(t *testing.T) {
 	set := NewSet()
 	set.Add("item1")
 	set.Add("item2")

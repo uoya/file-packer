@@ -8,6 +8,9 @@ import (
 )
 
 func ZipFiles(sourceNames []FileName, dstDir DirectoryName) error {
+	if len(sourceNames) == 0 {
+		return nil
+	}
 	zipFile, err := os.Create(path.Join(string(dstDir), string(sourceNames[0].Base())+".zip"))
 	if err != nil {
 		return err
