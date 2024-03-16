@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+	"github.com/uoya/ImagePacker/fileutil"
+	"github.com/uoya/ImagePacker/service"
 	"io"
 	"log/slog"
 	"os"
@@ -23,14 +25,7 @@ const (
 	titleError    = "エラー"
 )
 
-type ServiceName string
-type Service interface {
-	Name() ServiceName
-	Check(FileBaseName) ([]FileName, error)
-	Exec([]FileName) error
-}
-
-type History map[FileBaseName]map[ServiceName][]FileName
+type History map[fileutil.FileBaseName]map[service.Name][]fileutil.FileName
 
 func main() {
 	if err := realMain(); err != nil {
@@ -53,11 +48,11 @@ func realMain() error {
 	child := logger.With(slog.String("version", version))
 	slog.SetDefault(child)
 
-	services := []Service{
-		AdobeStock{},
-		Pixta{},
-		ImageMart{},
-		ShutterStock{},
+	services := []service.Service{
+		service.AdobeStock{},
+		service.Pixta{},
+		service.ImageMart{},
+		service.ShutterStock{},
 	}
 
 	history := make(History)
@@ -65,14 +60,14 @@ func realMain() error {
 
 	// チェック
 	for _, file := range files {
-		filename := FileName(file.Name())
+		filename := fileutil.FileName(file.Name())
 
 		// ai ファイルのみ抽出
-		if !file.IsDir() && filepath.Ext(file.Name()) == string(ai) {
+		if !file.IsDir() && filepath.Ext(file.Name()) == string(fileutil.Ai) {
 			baseName := filename.Base()
 
-			h := make(map[ServiceName][]FileName)
-			h["original"] = []FileName{filename} // オリジナルの ai ファイル
+			h := make(map[service.Name][]fileutil.FileName)
+			h["original"] = []fileutil.FileName{filename} // オリジナルの ai ファイル
 			for _, service := range services {
 				// 出力先フォルダがすでに存在している場合、フォルダ内のデータを確認
 				if _, err = os.Stat(string(service.Name())); err == nil {
@@ -108,7 +103,7 @@ func realMain() error {
 	// 実行
 	for k, _ := range history {
 		for _, service := range services {
-			err = MkdirIfNotExists(DirectoryName(service.Name()))
+			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(service.Name()))
 			err := service.Exec(history[k][service.Name()])
 			if err != nil {
 				slog.Error(err.Error(), "ステップ", "exec", "対象", service.Name(), "ファイル", k)
@@ -119,8 +114,8 @@ func realMain() error {
 
 	// 処理済みファイル格納フォルダ作成
 	now := time.Now().Format("2006-01-02-15-04")
-	nowDir := DirectoryName(path.Join(outputPath, now))
-	err = MkdirIfNotExists(nowDir)
+	nowDir := fileutil.DirectoryName(path.Join(outputPath, now))
+	err = fileutil.MkdirIfNotExists(nowDir)
 	if err != nil {
 		slog.Error(err.Error())
 		return err

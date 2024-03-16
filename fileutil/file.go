@@ -1,4 +1,4 @@
-package main
+package fileutil
 
 import (
 	"io"
@@ -11,15 +11,14 @@ import (
 type Extension string
 
 const (
-	ai  Extension = ".ai"
-	png Extension = ".png"
-	jpg Extension = ".jpg"
-	eps Extension = ".eps"
+	Ai  Extension = ".ai"
+	Png Extension = ".png"
+	Jpg Extension = ".jpg"
+	Eps Extension = ".eps"
 )
 
 type FileName string
 type FileBaseName string
-type DirectoryName string
 
 func (f FileName) Base() FileBaseName {
 	strName := string(f)
@@ -31,16 +30,6 @@ func (b FileBaseName) Suffix(suffix string) FileBaseName {
 }
 func (b FileBaseName) FullName(ext Extension) FileName {
 	return FileName(string(b) + string(ext))
-}
-func MkdirIfNotExists(dirName DirectoryName) error {
-	strDirName := string(dirName)
-	if _, err := os.Stat(strDirName); os.IsNotExist(err) {
-		if err = os.MkdirAll(strDirName, 0777); err != nil {
-			return err
-		}
-		return err
-	}
-	return nil
 }
 
 func CopyFile(src FileName, dstDir DirectoryName) (int64, error) {
