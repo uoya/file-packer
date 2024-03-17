@@ -1,17 +1,20 @@
-package fileutil
+package compressor
 
 import (
 	"archive/zip"
+	"github.com/uoya/file-packer/fileutil"
 	"io"
 	"os"
 	"path"
 )
 
-func ZipFiles(sourceNames []FileName, dstDir DirectoryName) error {
-	if len(sourceNames) == 0 {
+type ZipCompressor struct{}
+
+func (z *ZipCompressor) Compress(sources []fileutil.File, dstDir fileutil.DirectoryName) error {
+	if len(sources) == 0 {
 		return nil
 	}
-	zipFile, err := os.Create(path.Join(string(dstDir), string(sourceNames[0].Base())+".zip"))
+	zipFile, err := os.Create(path.Join(string(dstDir), string(sources[0].Base())+".zip"))
 	if err != nil {
 		return err
 	}
@@ -20,16 +23,16 @@ func ZipFiles(sourceNames []FileName, dstDir DirectoryName) error {
 	zipWriter := zip.NewWriter(zipFile)
 	defer zipWriter.Close()
 
-	for _, file := range sourceNames {
-		if err := addFileToZip(file, zipWriter); err != nil {
+	for _, f := range sources {
+		if err := addFileToZip(f, zipWriter); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func addFileToZip(filename FileName, zipWriter *zip.Writer) error {
-	fileToZip, err := os.Open(string(filename))
+func addFileToZip(file fileutil.File, zipWriter *zip.Writer) error {
+	fileToZip, err := os.Open(file.StrPath())
 	if err != nil {
 		return err
 	}
@@ -45,7 +48,7 @@ func addFileToZip(filename FileName, zipWriter *zip.Writer) error {
 		return err
 	}
 
-	header.Name = string(filename)
+	header.Name = string(file.Name)
 
 	header.Method = zip.Deflate
 

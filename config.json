@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "root": "./work",
+  "markerExtension": ".ai",
+  "services": [
+    {
+      "name": "AdobeStock",
+      "targetExtensions": [
+        "eps",
+        "png"
+      ],
+      "includes": 2,
+      "compress": "zip"
+    }
+  ]
+}

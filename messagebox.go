@@ -9,10 +9,10 @@ import (
 const MB_OK = 0x00000000
 
 // MessageBox of Win32 API.
-func MessageBox(title, caption string) int {
+func MessageBox(title ErrTitle, caption ErrMsg) int {
 	hwnd := 0
-	msgCaptionPtr, _ := syscall.UTF16PtrFromString(caption)
-	msgTitlePtr, _ := syscall.UTF16PtrFromString(title)
+	msgCaptionPtr, _ := syscall.UTF16PtrFromString(string(caption))
+	msgTitlePtr, _ := syscall.UTF16PtrFromString(string(title))
 	ret, _, _ := syscall.NewLazyDLL("user32.dll").NewProc("MessageBoxW").Call(
 		uintptr(hwnd),
 		uintptr(unsafe.Pointer(msgCaptionPtr)),

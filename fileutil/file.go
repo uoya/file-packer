@@ -2,6 +2,7 @@ package fileutil
 
 import (
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,17 +12,22 @@ import (
 type Extension string
 
 const (
-	Ai  Extension = ".ai"
 	Png Extension = ".png"
 	Jpg Extension = ".jpg"
 	Eps Extension = ".eps"
 )
 
+type FilePath string
 type FileName string
 type FileBaseName string
 
-func (f FileName) Base() FileBaseName {
-	strName := string(f)
+type File struct {
+	Name FileName
+	Root string
+}
+
+func (f File) Base() FileBaseName {
+	strName := string(f.Name)
 	return FileBaseName(strings.TrimSuffix(strName, filepath.Ext(strName)))
 }
 
@@ -32,8 +38,17 @@ func (b FileBaseName) FullName(ext Extension) FileName {
 	return FileName(string(b) + string(ext))
 }
 
-func CopyFile(src FileName, dstDir DirectoryName) (int64, error) {
-	strSrc := string(src)
+func (f File) Path() FilePath {
+	strName := string(f.Name)
+	return FilePath(path.Join(f.Root, strName))
+}
+
+func (f File) StrPath() string {
+	return string(f.Path())
+}
+
+func CopyFile(srcPath FilePath, dstDir DirectoryName) (int64, error) {
+	strSrc := string(srcPath)
 	sourceFileStat, err := os.Stat(strSrc)
 	if err != nil {
 		return 0, err
@@ -57,4 +72,23 @@ func CopyFile(src FileName, dstDir DirectoryName) (int64, error) {
 	defer destination.Close()
 	nBytes, err := io.Copy(destination, source)
 	return nBytes, err
+}
+
+func CreateFileIfNotExists(path FilePath, content string) error {
+	srcPath := string(path)
+	_, err := os.Stat(srcPath)
+	if os.IsNotExist(err) {
+		file, err := os.Create(srcPath)
+		slog.Info("file created.", "path", path)
+		if err != nil {
+			return err
+		}
+		if _, err := file.WriteString(content); err != nil {
+			return err
+		}
+		if err := file.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }

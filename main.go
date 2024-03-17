@@ -1,9 +1,10 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
-	"github.com/uoya/ImagePacker/fileutil"
-	"github.com/uoya/ImagePacker/service"
+	"github.com/uoya/file-packer/fileutil"
+	"github.com/uoya/file-packer/service"
 	"io"
 	"log/slog"
 	"os"
@@ -14,22 +15,26 @@ import (
 
 const (
 	version    = "0.1.0"
-	outputPath = "./処理済み"
-	logFile    = "./process.log"
-	root       = "./"
+	outputPath = "処理済み"
+	logFile    = "process.log"
+	root       = "./work"
+	configFile = "./config.json"
 )
+
+type ErrTitle string
+type ErrMsg string
 
 const (
-	titleFinished = "処理完了"
-	msgFinished   = "処理が完了しました"
-	titleError    = "エラー"
+	titleFinished ErrTitle = "処理完了"
+	titleError    ErrTitle = "エラー"
+	msgFinished   ErrMsg   = "処理が完了しました"
 )
 
-type History map[fileutil.FileBaseName]map[service.Name][]fileutil.FileName
+type History map[fileutil.FileBaseName]map[service.Name][]fileutil.File
 
 func main() {
 	if err := realMain(); err != nil {
-		MessageBox(titleError, err.Error())
+		MessageBox(titleError, ErrMsg(err.Error()))
 		os.Exit(1)
 	}
 	os.Exit(0)
@@ -37,7 +42,8 @@ func main() {
 
 func realMain() error {
 	// ログ出力設定
-	logfile, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logPath := path.Join(root, logFile)
+	logfile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}
@@ -48,62 +54,76 @@ func realMain() error {
 	child := logger.With(slog.String("version", version))
 	slog.SetDefault(child)
 
-	services := []service.Service{
-		service.AdobeStock{},
-		service.Pixta{},
-		service.ImageMart{},
-		service.ShutterStock{},
+	conf, err := loadConf()
+	if err != nil {
+		slog.Error(err.Error(), "ステップ", "loadConf")
+		return err
+	}
+
+	var services []service.Service
+	for _, s := range conf.Services {
+		srv, err := service.New(s.Name)
+		if err != nil {
+			slog.Error(err.Error(), "ステップ", "loadConf")
+			return err
+		}
+		services = append(services, srv)
 	}
 
 	history := make(History)
 	files, err := os.ReadDir(root)
 
-	// チェック
+	// 処理対象取得
+	var markerFiles []fileutil.File
 	for _, file := range files {
-		filename := fileutil.FileName(file.Name())
 
-		// ai ファイルのみ抽出
-		if !file.IsDir() && filepath.Ext(file.Name()) == string(fileutil.Ai) {
-			baseName := filename.Base()
+		if !file.IsDir() && filepath.Ext(file.Name()) == conf.MarkerExtension {
+			f := fileutil.File{Name: fileutil.FileName(file.Name()), Root: root}
+			markerFiles = append(markerFiles, f)
 
-			h := make(map[service.Name][]fileutil.FileName)
-			h["original"] = []fileutil.FileName{filename} // オリジナルの ai ファイル
-			for _, service := range services {
-				// 出力先フォルダがすでに存在している場合、フォルダ内のデータを確認
-				if _, err = os.Stat(string(service.Name())); err == nil {
-					// フォルダが存在しているので中のファイルを確認
-					items, err := os.ReadDir(string(service.Name()))
-					if err != nil {
-						slog.Error(err.Error(), "ステップ", "check", "対象", service.Name())
-						return err
-					}
-					if len(items) > 0 {
-						message := "出力先フォルダ内にファイルが存在します"
-						slog.Error(message, "対象", service.Name())
-						return errors.New(message)
-					}
-				} else if !os.IsNotExist(err) {
-					// フォルダが存在しない、以外のエラーは異常として扱う
+		}
+	}
+
+	// チェック
+	for _, f := range markerFiles {
+
+		h := make(map[service.Name][]fileutil.File)
+		for _, service := range services {
+			// 出力先フォルダがすでに存在している場合、フォルダ内のデータを確認
+			serviceDir := path.Join(root, string(service.Name()))
+			if _, err = os.Stat(serviceDir); err == nil {
+				// フォルダが存在しているので中のファイルを確認
+				items, err := os.ReadDir(serviceDir)
+				if err != nil {
 					slog.Error(err.Error(), "ステップ", "check", "対象", service.Name())
 					return err
 				}
-
-				// 必要なファイルの存在確認
-				checked, err := service.Check(baseName)
-				if err != nil {
-					slog.Error(err.Error(), "ステップ", "check", "対象", service.Name(), "ファイル", baseName)
-					return err
+				if len(items) > 0 {
+					message := "出力先フォルダ内にファイルが存在します"
+					slog.Error(message, "対象", service.Name())
+					return errors.New(message)
 				}
-				h[service.Name()] = checked
+			} else if !os.IsNotExist(err) {
+				// フォルダが存在しない、以外のエラーは異常として扱う
+				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name())
+				return err
 			}
-			history[baseName] = h
+
+			// 必要なファイルの存在確認
+			checked, err := service.Check(f)
+			if err != nil {
+				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name(), "ファイル", f.Base())
+				return err
+			}
+			h[service.Name()] = checked
 		}
+		history[f.Base()] = h
 	}
 
 	// 実行
 	for k, _ := range history {
 		for _, service := range services {
-			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(service.Name()))
+			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(path.Join(root, string(service.Name()))))
 			err := service.Exec(history[k][service.Name()])
 			if err != nil {
 				slog.Error(err.Error(), "ステップ", "exec", "対象", service.Name(), "ファイル", k)
@@ -114,7 +134,7 @@ func realMain() error {
 
 	// 処理済みファイル格納フォルダ作成
 	now := time.Now().Format("2006-01-02-15-04")
-	nowDir := fileutil.DirectoryName(path.Join(outputPath, now))
+	nowDir := fileutil.DirectoryName(path.Join(root, outputPath, now))
 	err = fileutil.MkdirIfNotExists(nowDir)
 	if err != nil {
 		slog.Error(err.Error())
@@ -127,19 +147,19 @@ func realMain() error {
 	for _, h := range history {
 		for _, v := range h {
 			for _, vv := range v {
-				fileSet.Add(string(vv))
+				fileSet.Add(string(vv.Name))
 			}
 		}
 	}
 	for _, f := range fileSet.Values() {
-		err = os.Rename(f, path.Join(string(nowDir), f))
+		err = os.Rename(path.Join(root, f), path.Join(string(nowDir), f))
 		if err != nil {
 			slog.Error(err.Error(), "ステップ", "move", "対象", f)
 			return err
 		}
 	}
 
-	slog.Info(msgFinished)
+	slog.Info(string(msgFinished))
 	MessageBox(titleFinished, msgFinished)
 	return nil
 }
