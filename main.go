@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"github.com/uoya/file-packer/fileutil"
-	"github.com/uoya/file-packer/service"
 	"io"
 	"log/slog"
 	"os"
@@ -30,7 +29,7 @@ const (
 	msgFinished   ErrMsg   = "処理が完了しました"
 )
 
-type History map[fileutil.FileBaseName]map[service.Name][]fileutil.File
+type History map[fileutil.FileBaseName]map[ServiceName][]fileutil.File
 
 func main() {
 	if err := realMain(); err != nil {
@@ -60,14 +59,9 @@ func realMain() error {
 		return err
 	}
 
-	var services []service.Service
+	var services []Service
 	for _, s := range conf.Services {
-		srv, err := service.New(s.Name)
-		if err != nil {
-			slog.Error(err.Error(), "ステップ", "loadConf")
-			return err
-		}
-		services = append(services, srv)
+		services = append(services, NewService(s))
 	}
 
 	history := make(History)
@@ -87,35 +81,36 @@ func realMain() error {
 	// チェック
 	for _, f := range markerFiles {
 
-		h := make(map[service.Name][]fileutil.File)
+		h := make(map[ServiceName][]fileutil.File)
+		h["original"] = []fileutil.File{f}
 		for _, service := range services {
 			// 出力先フォルダがすでに存在している場合、フォルダ内のデータを確認
-			serviceDir := path.Join(root, string(service.Name()))
+			serviceDir := path.Join(root, string(service.Name))
 			if _, err = os.Stat(serviceDir); err == nil {
 				// フォルダが存在しているので中のファイルを確認
 				items, err := os.ReadDir(serviceDir)
 				if err != nil {
-					slog.Error(err.Error(), "ステップ", "check", "対象", service.Name())
+					slog.Error(err.Error(), "ステップ", "check", "対象", service.Name)
 					return err
 				}
 				if len(items) > 0 {
 					message := "出力先フォルダ内にファイルが存在します"
-					slog.Error(message, "対象", service.Name())
+					slog.Error(message, "対象", service.Name)
 					return errors.New(message)
 				}
 			} else if !os.IsNotExist(err) {
 				// フォルダが存在しない、以外のエラーは異常として扱う
-				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name())
+				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name)
 				return err
 			}
 
 			// 必要なファイルの存在確認
 			checked, err := service.Check(f)
 			if err != nil {
-				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name(), "ファイル", f.Base())
+				slog.Error(err.Error(), "ステップ", "check", "対象", service.Name, "ファイル", f.Base())
 				return err
 			}
-			h[service.Name()] = checked
+			h[service.Name] = checked
 		}
 		history[f.Base()] = h
 	}
@@ -123,10 +118,10 @@ func realMain() error {
 	// 実行
 	for k, _ := range history {
 		for _, service := range services {
-			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(path.Join(root, string(service.Name()))))
-			err := service.Exec(history[k][service.Name()])
+			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(path.Join(root, string(service.Name))))
+			err := service.Exec(history[k][service.Name])
 			if err != nil {
-				slog.Error(err.Error(), "ステップ", "exec", "対象", service.Name(), "ファイル", k)
+				slog.Error(err.Error(), "ステップ", "exec", "対象", service.Name, "ファイル", k)
 				return err
 			}
 		}

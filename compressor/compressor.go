@@ -15,7 +15,7 @@ func NewCompressor(opt CompressOption) Compressor {
 	case CompressZip:
 		return &ZipCompressor{}
 	default:
-		return nil
+		return &NilCompressor{}
 	}
 }
 
@@ -46,4 +46,16 @@ func (c *CompressOption) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("invalid compressor value: %s", str)
+}
+
+type NilCompressor struct{}
+
+func (c *NilCompressor) Compress(sources []fileutil.File, dstDir fileutil.DirectoryName) error {
+	for _, source := range sources {
+		_, err := fileutil.CopyFile(source.Path(), dstDir)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

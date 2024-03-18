@@ -6,11 +6,39 @@
     {
       "name": "AdobeStock",
       "targetExtensions": [
-        "eps",
-        "png"
+        ".eps",
+        ".png"
       ],
       "includes": 2,
       "compress": "zip"
+    },
+    {
+      "name": "PIXTA",
+      "targetExtensions": [
+        ".eps",
+        ".png",
+        ".jpg"
+      ],
+      "includes": 2,
+      "compress": "zip"
+    },
+    {
+      "name": "ShutterStock",
+      "baseNameSuffix": "_ss",
+      "targetExtensions": [
+        ".eps"
+      ],
+      "includes": 1,
+      "compress": "none"
+    },
+    {
+      "name": "イメージマート",
+      "targetExtensions": [
+        ".eps",
+        ".jpg"
+      ],
+      "includes": 2,
+      "compress": "none"
     }
   ]
 }

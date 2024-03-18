@@ -4,35 +4,34 @@ import (
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	"github.com/uoya/file-packer/fileutil"
-	"github.com/uoya/file-packer/service"
 	"os"
 )
 
 var defaultConfig = &Config{
 	Version:         version,
 	Root:            root,
-	MarkerExtension: "ai",
-	Services: []service.Option{
+	MarkerExtension: ".ai",
+	Services: []ServiceOption{
 		{
 			Name:             "AdobeStock",
-			TargetExtensions: []string{"eps", "png"},
+			TargetExtensions: []string{".eps", ".png"},
 			Includes:         2,
 			Compress:         "zip",
 		},
 		{
 			Name:             "PIXTA",
-			TargetExtensions: []string{"eps", "png", "jpg"},
+			TargetExtensions: []string{".eps", ".png", ".jpg"},
 			Includes:         2,
 			Compress:         "zip",
 		}, {
 			Name:             "ShutterStock",
-			TargetExtensions: []string{"eps"},
+			TargetExtensions: []string{".eps"},
 			BaseNameSuffix:   "_ss",
 			Includes:         1,
 			Compress:         "none",
 		}, {
 			Name:             "イメージマート",
-			TargetExtensions: []string{"eps", "jpg"},
+			TargetExtensions: []string{".eps", ".jpg"},
 			Includes:         2,
 			Compress:         "none",
 		},
@@ -43,10 +42,10 @@ var defaultConfig = &Config{
 var validate *validator.Validate
 
 type Config struct {
-	Version         string           `json:"version" validate:"required,semver"`
-	Root            string           `json:"root" validate:"required,min=1"`
-	MarkerExtension string           `json:"markerExtension" validate:"required"`
-	Services        []service.Option `json:"services" validate:"gt=0,dive,required"`
+	Version         string          `json:"version" validate:"required,semver"`
+	Root            string          `json:"root" validate:"required,min=1"`
+	MarkerExtension string          `json:"markerExtension" validate:"required"`
+	Services        []ServiceOption `json:"services" validate:"gt=0,dive,required"`
 }
 
 func loadConf() (*Config, error) {

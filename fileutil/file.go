@@ -9,14 +9,6 @@ import (
 	"strings"
 )
 
-type Extension string
-
-const (
-	Png Extension = ".png"
-	Jpg Extension = ".jpg"
-	Eps Extension = ".eps"
-)
-
 type FilePath string
 type FileName string
 type FileBaseName string
@@ -34,7 +26,7 @@ func (f File) Base() FileBaseName {
 func (b FileBaseName) Suffix(suffix string) FileBaseName {
 	return FileBaseName(string(b) + suffix)
 }
-func (b FileBaseName) FullName(ext Extension) FileName {
+func (b FileBaseName) FullName(ext string) FileName {
 	return FileName(string(b) + string(ext))
 }
 
