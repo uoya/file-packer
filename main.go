@@ -7,17 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
-)
-
-const (
-	version    = "0.1.0"
-	outputPath = "処理済み"
-	logFile    = "process.log"
-	root       = "./work"
-	configFile = "./config.json"
 )
 
 type ErrTitle string
@@ -40,8 +31,14 @@ func main() {
 }
 
 func realMain() error {
+	conf, err := loadConf()
+	if err != nil {
+		slog.Error(err.Error(), "ステップ", "loadConf")
+		return err
+	}
+
 	// ログ出力設定
-	logPath := path.Join(root, logFile)
+	logPath := filepath.Join(conf.WorkDir, logFile)
 	logfile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
@@ -53,26 +50,20 @@ func realMain() error {
 	child := logger.With(slog.String("version", version))
 	slog.SetDefault(child)
 
-	conf, err := loadConf()
-	if err != nil {
-		slog.Error(err.Error(), "ステップ", "loadConf")
-		return err
-	}
-
 	var services []Service
 	for _, s := range conf.Services {
 		services = append(services, NewService(s))
 	}
 
 	history := make(History)
-	files, err := os.ReadDir(root)
+	files, err := os.ReadDir(conf.WorkDir)
 
 	// 処理対象取得
 	var markerFiles []fileutil.File
 	for _, file := range files {
 
 		if !file.IsDir() && filepath.Ext(file.Name()) == conf.MarkerExtension {
-			f := fileutil.File{Name: fileutil.FileName(file.Name()), Root: root}
+			f := fileutil.File{Name: fileutil.FileName(file.Name()), WorkDir: conf.WorkDir}
 			markerFiles = append(markerFiles, f)
 
 		}
@@ -85,7 +76,7 @@ func realMain() error {
 		h["original"] = []fileutil.File{f}
 		for _, service := range services {
 			// 出力先フォルダがすでに存在している場合、フォルダ内のデータを確認
-			serviceDir := path.Join(root, string(service.Name))
+			serviceDir := filepath.Join(conf.WorkDir, string(service.Name))
 			if _, err = os.Stat(serviceDir); err == nil {
 				// フォルダが存在しているので中のファイルを確認
 				items, err := os.ReadDir(serviceDir)
@@ -118,7 +109,7 @@ func realMain() error {
 	// 実行
 	for k, _ := range history {
 		for _, service := range services {
-			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(path.Join(root, string(service.Name))))
+			err = fileutil.MkdirIfNotExists(fileutil.DirectoryName(filepath.Join(conf.WorkDir, string(service.Name))))
 			err := service.Exec(history[k][service.Name])
 			if err != nil {
 				slog.Error(err.Error(), "ステップ", "exec", "対象", service.Name, "ファイル", k)
@@ -129,7 +120,7 @@ func realMain() error {
 
 	// 処理済みファイル格納フォルダ作成
 	now := time.Now().Format("2006-01-02-15-04")
-	nowDir := fileutil.DirectoryName(path.Join(root, outputPath, now))
+	nowDir := fileutil.DirectoryName(filepath.Join(conf.WorkDir, outputPath, now))
 	err = fileutil.MkdirIfNotExists(nowDir)
 	if err != nil {
 		slog.Error(err.Error())
@@ -147,7 +138,7 @@ func realMain() error {
 		}
 	}
 	for _, f := range fileSet.Values() {
-		err = os.Rename(path.Join(root, f), path.Join(string(nowDir), f))
+		err = os.Rename(filepath.Join(conf.WorkDir, f), filepath.Join(string(nowDir), f))
 		if err != nil {
 			slog.Error(err.Error(), "ステップ", "move", "対象", f)
 			return err

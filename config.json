@@ -1,13 +1,15 @@
 {
   "version": "0.1.0",
-  "root": "./work",
+  "workDir": "test",
+  "outputPath": "処理済み",
   "markerExtension": ".ai",
   "services": [
     {
       "name": "AdobeStock",
       "targetExtensions": [
         ".eps",
-        ".png"
+        ".png",
+        ".jpg"
       ],
       "includes": 2,
       "compress": "zip"

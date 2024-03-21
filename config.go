@@ -7,14 +7,22 @@ import (
 	"os"
 )
 
+const (
+	version    = "0.1.0"
+	outputPath = "処理済み"
+	logFile    = "process.log"
+	configFile = "config.json"
+)
+
 var defaultConfig = &Config{
-	Version:         version,
-	Root:            root,
+	Version:         "0.1.0",
+	WorkDir:         "test",
+	OutputPath:      "処理済み",
 	MarkerExtension: ".ai",
 	Services: []ServiceOption{
 		{
 			Name:             "AdobeStock",
-			TargetExtensions: []string{".eps", ".png"},
+			TargetExtensions: []string{".eps", ".png", ".jpg"},
 			Includes:         2,
 			Compress:         "zip",
 		},
@@ -43,7 +51,8 @@ var validate *validator.Validate
 
 type Config struct {
 	Version         string          `json:"version" validate:"required,semver"`
-	Root            string          `json:"root" validate:"required,min=1"`
+	WorkDir         string          `json:"workDir" validate:"required,min=1"`
+	OutputPath      string          `json:"outputPath" validate:"required,min=1"`
 	MarkerExtension string          `json:"markerExtension" validate:"required"`
 	Services        []ServiceOption `json:"services" validate:"gt=0,dive,required"`
 }

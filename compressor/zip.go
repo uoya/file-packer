@@ -5,7 +5,7 @@ import (
 	"github.com/uoya/file-packer/fileutil"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 type ZipCompressor struct{}
@@ -14,7 +14,7 @@ func (z *ZipCompressor) Compress(sources []fileutil.File, dstDir fileutil.Direct
 	if len(sources) == 0 {
 		return nil
 	}
-	zipFile, err := os.Create(path.Join(string(dstDir), string(sources[0].Base())+".zip"))
+	zipFile, err := os.Create(filepath.Join(string(dstDir), string(sources[0].Base())+".zip"))
 	if err != nil {
 		return err
 	}

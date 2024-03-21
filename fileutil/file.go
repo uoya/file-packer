@@ -4,7 +4,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -14,8 +13,8 @@ type FileName string
 type FileBaseName string
 
 type File struct {
-	Name FileName
-	Root string
+	Name    FileName
+	WorkDir string
 }
 
 func (f File) Base() FileBaseName {
@@ -32,7 +31,7 @@ func (b FileBaseName) FullName(ext string) FileName {
 
 func (f File) Path() FilePath {
 	strName := string(f.Name)
-	return FilePath(path.Join(f.Root, strName))
+	return FilePath(filepath.Join(f.WorkDir, strName))
 }
 
 func (f File) StrPath() string {
@@ -56,7 +55,7 @@ func CopyFile(srcPath FilePath, dstDir DirectoryName) (int64, error) {
 	}
 	defer source.Close()
 
-	dst := path.Join(string(dstDir), strSrc)
+	dst := filepath.Join(string(dstDir), filepath.Base(strSrc))
 	destination, err := os.Create(dst)
 	if err != nil {
 		return 0, err
