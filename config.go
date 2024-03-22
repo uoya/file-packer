@@ -21,22 +21,17 @@ var defaultConfig = &Config{
 	MarkerExtension: ".ai",
 	Services: []ServiceOption{
 		{
-			Name:             "AdobeStock",
-			TargetExtensions: []string{".eps", ".png", ".jpg"},
-			Includes:         2,
-			Compress:         "zip",
+			Name:             "AdobeStock･ShutterStock",
+			TargetExtensions: []string{".eps"},
+			Includes:         1,
+			BaseNameSuffix:   "_lg",
+			Compress:         "none",
 		},
 		{
 			Name:             "PIXTA",
 			TargetExtensions: []string{".eps", ".png", ".jpg"},
 			Includes:         2,
 			Compress:         "zip",
-		}, {
-			Name:             "ShutterStock",
-			TargetExtensions: []string{".eps"},
-			BaseNameSuffix:   "_ss",
-			Includes:         1,
-			Compress:         "none",
 		}, {
 			Name:             "イメージマート",
 			TargetExtensions: []string{".eps", ".jpg"},
