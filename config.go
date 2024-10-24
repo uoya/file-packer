@@ -16,7 +16,7 @@ const (
 
 var defaultConfig = &Config{
 	Version:         "0.1.0",
-	WorkDir:         "test",
+	WorkDir:         "work",
 	OutputPath:      "処理済み",
 	MarkerExtension: ".ai",
 	Services: []ServiceOption{

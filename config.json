@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "workDir": "test",
+  "workDir": "work",
   "outputPath": "処理済み",
   "markerExtension": ".ai",
   "services": [
