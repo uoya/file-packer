@@ -19,11 +19,11 @@ type Service struct {
 }
 
 type ServiceOption struct {
-	Name             ServiceName               `json:"name" validate:"required,min=1"`
-	BaseNameSuffix   string                    `json:"baseNameSuffix,omitempty" validate:"omitempty"`
-	TargetExtensions []string                  `json:"targetExtensions" validate:"min=1"`
-	Includes         int                       `json:"includes" validate:"min=1"`
-	Compress         compressor.CompressOption `json:"compress" validate:"required,min=1"`
+	Name             ServiceName               `json:"name" validate:"required,min=1"` // 設定情報識別用のラベル。出力フォルダ名にも使われる。
+	BaseNameSuffix   string                    `json:"baseNameSuffix,omitempty" validate:"omitempty"` // [任意項目]ファイル名から拡張子を除いた部分について、特定の後置詞で識別したい場合はここで定義する。
+	TargetExtensions []string                  `json:"targetExtensions" validate:"min=1"` // zipにまとめる拡張子
+	Includes         int                       `json:"includes" validate:"min=1"` // zip 内に格納するファイル数。 targetExtensions.length > includes の場合、includesの個数がlimitになる。
+	Compress         compressor.CompressOption `json:"compress" validate:"required,min=1"` // zip | none 。zipの場合はzip圧縮、noneの場合はフォルダに移動するだけ。
 }
 
 func NewService(opt ServiceOption) Service {

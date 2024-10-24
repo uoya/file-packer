@@ -45,11 +45,11 @@ var defaultConfig = &Config{
 var validate *validator.Validate
 
 type Config struct {
-	Version         string          `json:"version" validate:"required,semver"`
-	WorkDir         string          `json:"workDir" validate:"required,min=1"`
-	OutputPath      string          `json:"outputPath" validate:"required,min=1"`
-	MarkerExtension string          `json:"markerExtension" validate:"required"`
-	Services        []ServiceOption `json:"services" validate:"gt=0,dive,required"`
+	Version         string          `json:"version" validate:"required,semver"` // config.jsonの版を識別するためのバージョン番号
+	WorkDir         string          `json:"workDir" validate:"required,min=1"` // 作業用フォルダ名
+	OutputPath      string          `json:"outputPath" validate:"required,min=1"` // 処理済みファイルの移動先フォルダ名
+	MarkerExtension string          `json:"markerExtension" validate:"required"` // 処理の基準とするファイルの拡張子
+	Services        []ServiceOption `json:"services" validate:"gt=0,dive,required"` // アップロード先のサービスに応じたパラメータ
 }
 
 func loadConf() (*Config, error) {
